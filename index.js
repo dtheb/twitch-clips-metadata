@@ -17,7 +17,7 @@ axios.defaults.headers.common["Client-ID"] = process.env.CLIENT_ID;
 
 let requests = 0;
 let count = 0;
-let chunk = 0;
+let chunks = 0;
 let done = 0;
 
 let start = DateTime.local();
@@ -42,6 +42,7 @@ axios
           const next = start.minus({days: process.env.QUERY_BUCKET_BATCH_DAYS});
           console.log("Starting:", start.toISO(), "-->", next.toISO());
           fetch(res.data.data[0].id, null, start, next);
+          chunks++;
           start = next;
         }
       })
