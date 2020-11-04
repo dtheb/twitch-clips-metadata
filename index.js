@@ -96,7 +96,8 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
             {
               Total: "Total: " + count,
               Found: "Found: " + data.length,
-              Requests: "Requests: " + requests,
+              Req: "Req: " + requests,
+              Limit: `Rate: ${res.headers["ratelimit-remaining"]}/${res.headers["ratelimit-limit"]}`,
               Time: ts.toISO(),
               Cursor: curr || "N/A",
             },
@@ -104,8 +105,13 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
           {
             minWidth: 10,
             config: {
-              Total: {maxWidth: 16},
-              Found: {maxWidth: 16},
+              Total: {minWidth: 16},
+              Total: {minWidth: 16},
+              Found: {minWidth: 16},
+              Req: {minWidth: 12},
+              Limit: {minWidth: 16},
+              Time: {minWidth: 16},
+              Cursor: {minWidth: 16},
             },
             showHeaders: false,
           }
