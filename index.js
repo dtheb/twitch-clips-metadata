@@ -15,13 +15,19 @@ require("dotenv").config();
 axios.defaults.headers.common["Authorization"] = process.env.AUTH_BEARER;
 axios.defaults.headers.common["Client-ID"] = process.env.CLIENT_ID;
 
+let start = DateTime.local();
+const stop = DateTime.fromISO("2016-07-26T00:00:00+00:00");
+
 let requests = 0;
 let count = 0;
 let chunks = 0;
 let done = 0;
 
-let start = DateTime.local();
-const stop = DateTime.fromISO("2016-01-01T00:00:00+00:00");
+let buckets = Math.floor(
+  start.diff(stop).as("hours") / process.env.QUERY_CLIPS_HOURS
+);
+
+let bucketsDone = 0;
 
 let txtFiles = new Map();
 let dir = path.join(__dirname, "data", process.env.CHANNEL);
@@ -99,6 +105,7 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
               Req: "Req: " + requests,
               Limit: `Rate: ${res.headers["ratelimit-remaining"]}/${res.headers["ratelimit-limit"]}`,
               Time: ts.toISO(),
+              Progress: `Buckets: ${bucketsDone} / ${buckets}`,
               Cursor: curr || "N/A",
             },
           ],
@@ -110,7 +117,8 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
               Found: {minWidth: 16},
               Req: {minWidth: 12},
               Limit: {minWidth: 16},
-              Time: {minWidth: 16},
+              Time: {minWidth: 32},
+              Progress: {minWidth: 24},
               Cursor: {minWidth: 16},
             },
             showHeaders: false,
@@ -123,11 +131,15 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
 
       if (endTs >= nextTs) {
         console.log("DONE:Time", endTs.toISO(), ">=", nextTs.toISO());
+
+        bucketsDone++;
+
         chunkDone();
         return;
       }
 
       if (!res.data.pagination.cursor) {
+        bucketsDone++;
         fetch(bid, null, nextTs, endTs);
       } else {
         fetch(bid, res.data.pagination.cursor, ts, endTs);
