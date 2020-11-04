@@ -18,6 +18,8 @@ axios.defaults.headers.common["Client-ID"] = process.env.CLIENT_ID;
 let start = DateTime.local();
 const stop = DateTime.fromISO("2016-07-26T00:00:00+00:00");
 
+let ids = new Set();
+
 let requests = 0;
 let count = 0;
 let chunks = 0;
@@ -29,7 +31,6 @@ let buckets = Math.floor(
 
 let bucketsDone = 0;
 
-let txtFiles = new Map();
 let dir = path.join(__dirname, "data", process.env.CHANNEL);
 
 axios
@@ -93,19 +94,20 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
           );
           return d;
         })
+        .filter((d) => !ids.has(d.id))
         .forEach((d) => {
-          fs.appendFileSync(
-            path.join(dir, `clips_mp4_${process.env.CHANNEL}.txt`),
-            d.download_url + "\n"
-          );
+          if (ids.has(d.id)) {
+            console.log("-----------------------------------------");
+            console.log("------------------DUPE-----------------------");
+            console.log("----------", d.id, "----------");
+            console.log("------------------DUPE-----------------------");
+            console.log("-----------------------------------------");
+          } else {
+            ids.add(d.id);
+          }
         })
+        .forEach((d) => saveData(d))
         .value();
-
-      const csv = new ObjectsToCsv(data);
-
-      await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}.csv`), {
-        append: true,
-      });
 
       console.log(
         columnify(
@@ -115,7 +117,7 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
               Found: "Found: " + data.length,
               Req: "Req: " + requests,
               Limit: `Rate: ${res.headers["ratelimit-remaining"]}/${res.headers["ratelimit-limit"]}`,
-              Time: ts.toISO(),
+              Time: `${ts.toISO()} ${endTs}`,
               Progress: `Buckets: ${bucketsDone} / ${buckets}`,
               Cursor: curr || "N/A",
             },
@@ -142,8 +144,6 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
 
       if (endTs >= nextTs) {
         console.log("DONE:Time", endTs.toISO(), ">=", nextTs.toISO());
-
-        bucketsDone++;
 
         chunkDone();
         return;
@@ -175,17 +175,20 @@ function chunkDone() {
   }
 }
 
-// async function saveData(clip) {
-//   const month = DateTime.fromISO(clip.created_at).toFormat("yyyy-LL");
+async function saveData(clip) {
+  const month = DateTime.fromISO(clip.created_at).toFormat("yyyy-LL");
 
-//   fs.appendFileSync(
-//     path.join(dir, `clips_mp4_${process.env.CHANNEL}-${month}.txt`),
-//     clip.download_url + "\n"
-//   );
+  fs.appendFileSync(
+    path.join(dir, `clips_mp4_${process.env.CHANNEL}-${month}.txt`),
+    clip.download_url + "\n"
+  );
 
-//   const csv = new ObjectsToCsv([clip]);
+  const csv = new ObjectsToCsv([clip]);
 
-//   await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}-${month}.csv`), {
-//     append: true,
-//   });
-// }
+  await csv.toDisk(
+    path.join(dir, `clips_${process.env.CHANNEL}-${month}.csv`),
+    {
+      append: true,
+    }
+  );
+}
