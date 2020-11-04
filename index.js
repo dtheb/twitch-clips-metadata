@@ -93,8 +93,19 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
           );
           return d;
         })
-        .forEach((d) => saveData(d))
+        .forEach((d) => {
+          fs.appendFileSync(
+            path.join(dir, `clips_mp4_${process.env.CHANNEL}.txt`),
+            d.download_url + "\n"
+          );
+        })
         .value();
+
+      const csv = new ObjectsToCsv(data);
+
+      await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}.csv`), {
+        append: true,
+      });
 
       console.log(
         columnify(
@@ -164,17 +175,17 @@ function chunkDone() {
   }
 }
 
-async function saveData(clip) {
-  const day = DateTime.fromISO(clip.created_at).toFormat("yyyy-LL");
+// async function saveData(clip) {
+//   const month = DateTime.fromISO(clip.created_at).toFormat("yyyy-LL");
 
-  fs.appendFileSync(
-    path.join(dir, `clips_mp4_${process.env.CHANNEL}-${day}.txt`),
-    clip.download_url + "\n"
-  );
+//   fs.appendFileSync(
+//     path.join(dir, `clips_mp4_${process.env.CHANNEL}-${month}.txt`),
+//     clip.download_url + "\n"
+//   );
 
-  const csv = new ObjectsToCsv([clip]);
+//   const csv = new ObjectsToCsv([clip]);
 
-  await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}-${day}.csv`), {
-    append: true,
-  });
-}
+//   await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}-${month}.csv`), {
+//     append: true,
+//   });
+// }
