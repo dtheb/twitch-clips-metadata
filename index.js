@@ -106,7 +106,9 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
             ids.add(d.id);
           }
         })
-        .forEach((d) => saveData(d))
+        .forEach((d) => saveDataCSV(d))
+        .filter((d) => d.view_count >= process.env.MINIMUM_VIEWS)
+        .forEach((d) => saveDataTXT(d))
         .value();
 
       console.log(
@@ -175,20 +177,17 @@ function chunkDone() {
   }
 }
 
-async function saveData(clip) {
-  const month = DateTime.fromISO(clip.created_at).toFormat("yyyy-LL");
-
+async function saveDataTXT(clip) {
   fs.appendFileSync(
-    path.join(dir, `clips_mp4_${process.env.CHANNEL}-${month}.txt`),
+    path.join(dir, `clips_mp4_${process.env.CHANNEL}.txt`),
     clip.download_url + "\n"
   );
+}
 
+async function saveDataCSV(clip) {
   const csv = new ObjectsToCsv([clip]);
 
-  await csv.toDisk(
-    path.join(dir, `clips_${process.env.CHANNEL}-${month}.csv`),
-    {
-      append: true,
-    }
-  );
+  await csv.toDisk(path.join(dir, `clips_${process.env.CHANNEL}.csv`), {
+    append: true,
+  });
 }
