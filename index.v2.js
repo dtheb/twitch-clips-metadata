@@ -99,7 +99,7 @@ const fetch = rateLimit(process.env.REQUESTS_PER_SECOND, 1000, function (
               Req: "Req: " + requests,
               Limit: `Rate: ${res.headers["ratelimit-remaining"]}/${res.headers["ratelimit-limit"]}`,
               Time: `${ts.toISO()} ${endTs}`,
-              Progress: `Buckets: ${bucketsDone} / ${buckets} (+${pages} pages)`,
+              Progress: `Buckets: ${bucketsDone} / ${buckets} (${pages} pages)`,
               Cursor: curr || "N/A",
             },
           ],
